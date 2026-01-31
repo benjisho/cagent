@@ -24,6 +24,7 @@ import (
 	"github.com/docker/cagent/pkg/config/latest"
 	"github.com/docker/cagent/pkg/config/types"
 	"github.com/docker/cagent/pkg/hooks"
+	"github.com/docker/cagent/pkg/metrics"
 	"github.com/docker/cagent/pkg/model/provider"
 	"github.com/docker/cagent/pkg/model/provider/options"
 	"github.com/docker/cagent/pkg/modelsdev"
@@ -707,6 +708,10 @@ func (r *LocalRuntime) RunStream(ctx context.Context, sess *session.Session) <-c
 	events := make(chan Event, 128)
 
 	go func() {
+		agentName := r.currentAgent
+		startTime := time.Now()
+		defer metrics.RecordAgentRun(agentName, time.Since(startTime))
+
 		telemetry.RecordSessionStart(ctx, r.currentAgent, sess.ID)
 
 		ctx, sessionSpan := r.startSpan(ctx, "runtime.session", trace.WithAttributes(
@@ -1493,6 +1498,9 @@ func (r *LocalRuntime) executeToolWithHandler(
 	res, duration, err := execute(ctx)
 
 	telemetry.RecordToolCall(ctx, toolCall.Function.Name, sess.ID, a.Name(), duration, err)
+	if tool.Category == "mcp" {
+		metrics.RecordMCPToolInvocation(toolCall.Function.Name, a.Name(), duration)
+	}
 
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
@@ -1643,6 +1651,8 @@ func (r *LocalRuntime) handleTaskTransfer(ctx context.Context, sess *session.Ses
 	}
 
 	a := r.CurrentAgent()
+	startTime := time.Now()
+	defer metrics.RecordTaskDelegation(a.Name(), params.Agent, time.Since(startTime))
 
 	// Span for task transfer (optional)
 	ctx, span := r.startSpan(ctx, "runtime.task_transfer", trace.WithAttributes(

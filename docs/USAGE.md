@@ -877,6 +877,16 @@ Common MCP tools include:
 - **Code**: Programming language specific tools
 - **API**: REST API integration tools
 
+Scaffolding for additional MCP connectors lives under `pkg/tools/connectors`, including:
+
+- **Trello**: `list_boards`
+- **Slack**: `send_message`
+- **Microsoft Teams**: `send_message`
+- **Postgres**: `run_query`
+
+These are placeholders intended as starting points for future integrations. You can wire them in
+via `command` or `ref` entries in your `toolsets` once the MCP servers are implemented.
+
 ### Configuring MCP Tools
 
 **Local (stdio) MCP Server:**
@@ -957,6 +967,16 @@ npm install -g @modelcontextprotocol/server-filesystem
 npm install -g @modelcontextprotocol/server-git
 npm install -g @modelcontextprotocol/server-web
 ```
+
+### Metrics and observability
+
+`cagent` can expose Prometheus-compatible metrics for agent runs, task delegations, and MCP tool
+invocations. Set the `ENABLE_METRICS` environment variable to start the `/metrics` endpoint
+and optionally set `METRICS_ADDR` to control the bind address (default `:9090`).
+
+The `docker-compose/` quickstart config includes Prometheus and Grafana, preconfigured to scrape
+`cagent:9090` and provision a Prometheus data source in Grafana. See
+[`docker-compose/README.md`](../docker-compose/README.md) for the full setup.
 
 ## Built-in Tools
 
