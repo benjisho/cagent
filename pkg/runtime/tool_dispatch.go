@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/docker/docker-agent/internal/metrics"
 	"github.com/docker/docker-agent/pkg/agent"
 	"github.com/docker/docker-agent/pkg/chat"
 	"github.com/docker/docker-agent/pkg/config/latest"
@@ -257,9 +258,14 @@ func (r *LocalRuntime) executeToolWithHandler(
 
 	events <- ToolCall(toolCall, tool, a.Name())
 
+	started := time.Now()
 	res, duration, err := execute(ctx)
+	if duration <= 0 {
+		duration = time.Since(started)
+	}
 
 	telemetry.RecordToolCall(ctx, toolCall.Function.Name, sess.ID, a.Name(), duration, err)
+	metrics.RecordToolInvocation(toolCall.Function.Name, a.Name(), duration, err)
 
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {

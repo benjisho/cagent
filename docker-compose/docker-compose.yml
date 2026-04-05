@@ -1,0 +1,68 @@
+services:
+  cagent:
+    image: docker/cagent:latest
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ENABLE_METRICS: "true"
+      METRICS_ADDR: ":9090"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: cagent
+    volumes:
+      - ../examples:/examples:ro
+    command: ["run", "--exec", "/examples/code.yaml", "Show a short stack status summary."]
+    depends_on:
+      - duckduckgo
+      - github-official
+      - jaeger
+      - prometheus
+      - grafana
+
+  duckduckgo:
+    image: mcp/duckduckgo:latest
+    command: ["--transport", "streamable-http", "--port", "8080"]
+    ports:
+      - "8811:8080"
+
+  github-official:
+    image: mcp/github-official:latest
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    command: ["--transport", "streamable-http", "--port", "8080"]
+    ports:
+      - "8812:8080"
+
+  jaeger:
+    image: jaegertracing/jaeger
+    command: ["--set", "service.telemetry.logs.level=error"]
+    environment:
+      OTEL_TRACES_SAMPLER: always_off
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - cagent
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus

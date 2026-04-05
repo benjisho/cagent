@@ -49,6 +49,7 @@ require (
 	github.com/natefinch/atomic v1.0.1
 	github.com/openai/openai-go/v3 v3.30.0
 	github.com/pb33f/libopenapi v0.34.4
+	github.com/prometheus/client_golang v1.1.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	github.com/spf13/cobra v1.10.2
@@ -74,8 +75,14 @@ require (
 )
 
 require (
+	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/pb33f/jsonpath v0.8.2 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
+	github.com/prometheus/common v0.6.0 // indirect
+	github.com/prometheus/procfs v0.0.3 // indirect
 )
 
 require (

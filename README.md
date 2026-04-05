@@ -71,6 +71,23 @@ docker agent run agent.yaml
 
 More examples in the [`examples/`](examples/README.md) directory.
 
+## Metrics and Observability
+
+`docker-agent` can expose Prometheus metrics at `/metrics` when enabled:
+
+```sh
+export ENABLE_METRICS=true
+export METRICS_ADDR=:9090 # optional, defaults to :9090
+docker agent run ./agent.yaml
+```
+
+The repository also includes a full stack in [`docker-compose/`](docker-compose/README.md) with:
+
+- Jaeger tracing (`localhost:16686`)
+- Prometheus scraping `cagent:9090/metrics` (`localhost:9090`)
+- Grafana with a pre-provisioned Prometheus data source (`localhost:3000`)
+- MCP services (`duckduckgo`, `github-official`) plus `cagent`
+
 ## Documentation
 
 📖 **[Full documentation](https://docker.github.io/docker-agent/)**
