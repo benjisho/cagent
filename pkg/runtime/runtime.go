@@ -710,7 +710,9 @@ func (r *LocalRuntime) RunStream(ctx context.Context, sess *session.Session) <-c
 	go func() {
 		agentName := r.currentAgent
 		startTime := time.Now()
-		defer metrics.RecordAgentRun(agentName, time.Since(startTime))
+		defer func() {
+			metrics.RecordAgentRun(agentName, time.Since(startTime))
+		}()
 
 		telemetry.RecordSessionStart(ctx, r.currentAgent, sess.ID)
 
@@ -1652,7 +1654,9 @@ func (r *LocalRuntime) handleTaskTransfer(ctx context.Context, sess *session.Ses
 
 	a := r.CurrentAgent()
 	startTime := time.Now()
-	defer metrics.RecordTaskDelegation(a.Name(), params.Agent, time.Since(startTime))
+	defer func() {
+		metrics.RecordTaskDelegation(a.Name(), params.Agent, time.Since(startTime))
+	}()
 
 	// Span for task transfer (optional)
 	ctx, span := r.startSpan(ctx, "runtime.task_transfer", trace.WithAttributes(
