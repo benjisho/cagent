@@ -57,10 +57,6 @@ var (
 	)
 )
 
-func init() {
-	registerMetricsCollectors()
-}
-
 func registerMetricsCollectors() {
 	registerMetrics.Do(func() {
 		prometheus.MustRegister(
@@ -74,16 +70,19 @@ func registerMetricsCollectors() {
 }
 
 func RecordAgentRun(duration time.Duration, err error) {
+	registerMetricsCollectors()
 	result := resultLabel(err)
 	agentRunsTotal.WithLabelValues(result).Inc()
 	agentRunDuration.WithLabelValues(result).Observe(duration.Seconds())
 }
 
 func RecordTaskDelegation(fromAgent, toAgent string, err error) {
+	registerMetricsCollectors()
 	taskDelegationsTotal.WithLabelValues(fromAgent, toAgent, resultLabel(err)).Inc()
 }
 
 func RecordToolInvocation(toolName, agentName string, duration time.Duration, err error) {
+	registerMetricsCollectors()
 	result := resultLabel(err)
 	toolInvocationsTotal.WithLabelValues(toolName, agentName, result).Inc()
 	toolInvocationDuration.WithLabelValues(toolName, agentName, result).Observe(duration.Seconds())
