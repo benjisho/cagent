@@ -12,7 +12,7 @@ import (
 	"github.com/docker/cli/cli"
 
 	"github.com/docker/docker-agent/cmd/root"
-	"github.com/docker/docker-agent/internal/metrics"
+	"github.com/docker/docker-agent/pkg/metrics"
 )
 
 func main() {
