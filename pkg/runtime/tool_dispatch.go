@@ -18,6 +18,7 @@ import (
 	"github.com/docker/docker-agent/pkg/chat"
 	"github.com/docker/docker-agent/pkg/config/latest"
 	"github.com/docker/docker-agent/pkg/hooks"
+	"github.com/docker/docker-agent/pkg/metrics"
 	"github.com/docker/docker-agent/pkg/permissions"
 	"github.com/docker/docker-agent/pkg/session"
 	"github.com/docker/docker-agent/pkg/telemetry"
@@ -257,9 +258,14 @@ func (r *LocalRuntime) executeToolWithHandler(
 
 	events <- ToolCall(toolCall, tool, a.Name())
 
+	started := time.Now()
 	res, duration, err := execute(ctx)
+	if duration <= 0 {
+		duration = time.Since(started)
+	}
 
 	telemetry.RecordToolCall(ctx, toolCall.Function.Name, sess.ID, a.Name(), duration, err)
+	metrics.RecordToolInvocation(toolCall.Function.Name, a.Name(), duration, err)
 
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {

@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -13,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/docker/docker-agent/pkg/agent"
+	"github.com/docker/docker-agent/pkg/metrics"
 	"github.com/docker/docker-agent/pkg/session"
 	"github.com/docker/docker-agent/pkg/tools"
 	"github.com/docker/docker-agent/pkg/tools/builtin"
@@ -273,11 +275,19 @@ func (r *LocalRuntime) handleTaskTransfer(ctx context.Context, sess *session.Ses
 	}
 
 	a := r.CurrentAgent()
+	fromAgent := a.Name()
+	toAgent := "unknown"
+	var transferErr error
+	defer func() {
+		metrics.RecordTaskDelegation(fromAgent, toAgent, transferErr)
+	}()
 
 	// Validate that the target agent is in the current agent's sub-agents list
 	if errResult := validateAgentInList(a.Name(), params.Agent, "transfer task to", "sub-agents list", a.SubAgents()); errResult != nil {
+		transferErr = errors.New(errResult.Output)
 		return errResult, nil
 	}
+	toAgent = params.Agent
 
 	ctx, span := r.startSpan(ctx, "runtime.task_transfer", trace.WithAttributes(
 		attribute.String("from.agent", a.Name()),
@@ -305,6 +315,7 @@ func (r *LocalRuntime) handleTaskTransfer(ctx context.Context, sess *session.Ses
 	// Emit agent info for the new agent
 	child, err := r.team.Agent(params.Agent)
 	if err != nil {
+		transferErr = err
 		return nil, err
 	}
 	evts <- AgentInfo(child.Name(), getAgentModelID(child), child.Description(), child.WelcomeMessage())
@@ -321,7 +332,9 @@ func (r *LocalRuntime) handleTaskTransfer(ctx context.Context, sess *session.Ses
 
 	s := newSubSession(sess, cfg, child)
 
-	return r.runSubSessionForwarding(ctx, sess, s, span, evts, a.Name())
+	result, err := r.runSubSessionForwarding(ctx, sess, s, span, evts, a.Name())
+	transferErr = err
+	return result, err
 }
 
 func (r *LocalRuntime) handleHandoff(_ context.Context, _ *session.Session, toolCall tools.ToolCall, _ chan Event) (*tools.ToolCallResult, error) {

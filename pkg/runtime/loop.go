@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker-agent/pkg/agent"
 	"github.com/docker/docker-agent/pkg/chat"
 	"github.com/docker/docker-agent/pkg/compaction"
+	"github.com/docker/docker-agent/pkg/metrics"
 	"github.com/docker/docker-agent/pkg/modelerrors"
 	"github.com/docker/docker-agent/pkg/modelsdev"
 	"github.com/docker/docker-agent/pkg/session"
@@ -403,10 +404,17 @@ func (r *LocalRuntime) RunStream(ctx context.Context, sess *session.Session) <-c
 // messages. This is a convenience wrapper around RunStream for non-streaming
 // callers.
 func (r *LocalRuntime) Run(ctx context.Context, sess *session.Session) ([]session.Message, error) {
+	started := time.Now()
+	var runErr error
+	defer func() {
+		metrics.RecordAgentRun(time.Since(started), runErr)
+	}()
+
 	events := r.RunStream(ctx, sess)
 	for event := range events {
 		if errEvent, ok := event.(*ErrorEvent); ok {
-			return nil, fmt.Errorf("%s", errEvent.Error)
+			runErr = fmt.Errorf("%s", errEvent.Error)
+			return nil, runErr
 		}
 	}
 	return sess.GetAllMessages(), nil
